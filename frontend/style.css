@@ -1,0 +1,170 @@
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: system-ui, sans-serif;
+  background: #0f0f1a;
+  color: #f0f0f0;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 2rem 1rem;
+}
+
+.screen {
+  width: 100%;
+  max-width: 480px;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.hidden { display: none !important; }
+
+/* ── Typography ── */
+h1 { font-size: 2rem; text-align: center; color: #a78bfa; }
+h2 { font-size: 1.4rem; text-align: center; }
+h3 { font-size: 1rem; color: #a78bfa; margin-top: 0.5rem; }
+
+.hint { font-size: 0.875rem; color: #888; text-align: center; }
+.error { font-size: 0.875rem; color: #f87171; text-align: center; }
+
+/* ── Inputs ── */
+input[type="text"] {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  border: 1px solid #333;
+  background: #1a1a2e;
+  color: #f0f0f0;
+  font-size: 1rem;
+}
+
+input[type="text"]:focus {
+  outline: none;
+  border-color: #a78bfa;
+}
+
+/* ── Buttons ── */
+button {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  border: none;
+  background: #a78bfa;
+  color: #0f0f1a;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+button:hover { background: #c4b5fd; }
+
+.button-row { display: flex; gap: 0.5rem; }
+
+/* ── Divider ── */
+.divider {
+  text-align: center;
+  color: #555;
+  font-size: 0.875rem;
+  position: relative;
+}
+
+.divider::before, .divider::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  width: 38%;
+  height: 1px;
+  background: #333;
+}
+
+.divider::before { left: 0; }
+.divider::after { right: 0; }
+
+/* ── Room Code ── */
+.room-code {
+  font-size: 3rem;
+  font-weight: 800;
+  text-align: center;
+  letter-spacing: 0.2em;
+  color: #a78bfa;
+  background: #1a1a2e;
+  border-radius: 12px;
+  padding: 1rem;
+}
+
+/* ── Round Badge ── */
+.round-badge {
+  text-align: center;
+  font-size: 0.875rem;
+  color: #888;
+  background: #1a1a2e;
+  border-radius: 20px;
+  padding: 0.25rem 1rem;
+  align-self: center;
+}
+
+/* ── Word / Robot Display ── */
+.word-reveal {
+  text-align: center;
+  background: #1a1a2e;
+  border: 1px solid #a78bfa;
+  border-radius: 12px;
+  padding: 1.5rem;
+  font-size: 1.1rem;
+}
+
+.word-reveal strong { font-size: 1.5rem; color: #a78bfa; }
+.category { font-size: 0.875rem; color: #888; }
+
+.robot-alert {
+  text-align: center;
+  background: #2d0f0f;
+  border: 1px solid #f87171;
+  border-radius: 12px;
+  padding: 1.5rem;
+  font-size: 1.2rem;
+  color: #f87171;
+  font-weight: 600;
+}
+
+.robot-alert span { font-size: 0.875rem; font-weight: 400; color: #fca5a5; }
+
+/* ── Lists ── */
+ul { list-style: none; display: flex; flex-direction: column; gap: 0.5rem; }
+
+ul li {
+  background: #1a1a2e;
+  border-radius: 8px;
+  padding: 0.6rem 1rem;
+  font-size: 0.95rem;
+}
+
+/* ── Vote Buttons ── */
+#vote-player-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.vote-btn {
+  background: #1a1a2e;
+  color: #f0f0f0;
+  border: 1px solid #333;
+  font-weight: 400;
+  font-size: 1.1rem;
+}
+
+.vote-btn:hover {
+  background: #2d1f5e;
+  border-color: #a78bfa;
+  color: #f0f0f0;
+}
+
+/* ── Results ── */
+#results-outcome {
+  font-size: 1.8rem;
+  color: #a78bfa;
+}

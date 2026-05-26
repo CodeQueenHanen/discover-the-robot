@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Discover the Robot</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Home Screen -->
+  <div id="screen-home" class="screen">
+    <h1>Discover the Robot</h1>
+    <input type="text" id="nickname-input" placeholder="Your nickname" maxlength="20">
+    <div class="button-row">
+      <button id="btn-create">Create Room</button>
+    </div>
+    <div class="divider">or join an existing room</div>
+    <input type="text" id="room-code-input" placeholder="Room code (e.g. XK7P)" maxlength="4">
+    <div class="button-row">
+      <button id="btn-join">Join Room</button>
+    </div>
+    <p id="home-error" class="error hidden"></p>
+  </div>
+
+  <!-- Lobby Screen -->
+  <div id="screen-lobby" class="screen hidden">
+    <h2>Room Code</h2>
+    <div id="lobby-room-code" class="room-code"></div>
+    <p class="hint">Share this code with your friends!</p>
+    <h3>Players</h3>
+    <ul id="lobby-player-list"></ul>
+    <button id="btn-start" class="hidden">Start Game</button>
+    <p id="lobby-waiting-msg" class="hint hidden">Waiting for the host to start...</p>
+  </div>
+
+  <!-- Clue Screen -->
+  <div id="screen-clue" class="screen hidden">
+    <div class="round-badge">Round <span id="clue-round"></span></div>
+    <div id="clue-word-display"></div>
+    <div id="clue-form">
+      <input type="text" id="clue-input" placeholder="Your one-word clue" maxlength="30">
+      <button id="btn-submit-clue">Submit Clue</button>
+      <p id="clue-error" class="error hidden"></p>
+    </div>
+    <p id="clue-submitted-msg" class="hint hidden">Clue submitted! Waiting for others...</p>
+    <h3>Status</h3>
+    <ul id="clue-status-list"></ul>
+  </div>
+
+  <!-- Reveal Screen -->
+  <div id="screen-reveal" class="screen hidden">
+    <div class="round-badge">Round <span id="reveal-round"></span></div>
+    <h2>All Clues</h2>
+    <ul id="reveal-clue-list"></ul>
+    <p class="hint">Discuss with your group — who do you think is the Robot?</p>
+    <button id="btn-start-vote" class="hidden">Start Voting</button>
+    <p id="reveal-waiting-msg" class="hint hidden">Waiting for the host to start voting...</p>
+  </div>
+
+  <!-- Vote Screen -->
+  <div id="screen-vote" class="screen hidden">
+    <div class="round-badge">Round <span id="vote-round"></span></div>
+    <h2>Who is the Robot?</h2>
+    <p class="hint">Tap a player to cast your vote.</p>
+    <div id="vote-player-list"></div>
+    <p id="vote-submitted-msg" class="hint hidden">Vote submitted! Waiting for others...</p>
+  </div>
+
+  <!-- Results Screen -->
+  <div id="screen-results" class="screen hidden">
+    <div class="round-badge">Round <span id="results-round"></span></div>
+    <h2 id="results-outcome"></h2>
+    <p id="results-robot-reveal"></p>
+    <p id="results-word-reveal"></p>
+    <h3>Votes</h3>
+    <ul id="results-vote-list"></ul>
+    <button id="btn-next-round" class="hidden">Next Round</button>
+    <p id="results-waiting-msg" class="hint hidden">Waiting for the host to start the next round...</p>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
