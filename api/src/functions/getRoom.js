@@ -34,6 +34,7 @@ app.http('getRoom', {
       players.push({
         playerId: player.rowKey,
         nickname: player.nickname,
+        avatar: player.avatar || '🦊',
         hasSubmittedClue: player.clue !== "",
         hasVoted: player.vote !== "",
         clue: ["reveal", "vote", "results"].includes(room.status) ? player.clue : undefined,

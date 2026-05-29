@@ -10,6 +10,7 @@ let hasSubmittedClue = false;
 let hasVoted = false;
 let pollTimer = null;
 let lastStatus = null;
+let selectedAvatar = '🦊';
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 function showScreen(id) {
@@ -80,13 +81,22 @@ function render(data) {
   }
 }
 
+// ── Avatar Picker ──────────────────────────────────────────────────────────
+document.getElementById('avatar-picker').addEventListener('click', (e) => {
+  const btn = e.target.closest('.avatar-option');
+  if (!btn) return;
+  document.querySelectorAll('.avatar-option').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  selectedAvatar = btn.dataset.avatar;
+});
+
 // ── Home ───────────────────────────────────────────────────────────────────
 document.getElementById('btn-create').addEventListener('click', async () => {
   const nickname = document.getElementById('nickname-input').value.trim();
   if (!nickname) return showError('home-error', 'Please enter a nickname.');
   hideError('home-error');
   try {
-    const data = await apiPost('createRoom', { nickname });
+    const data = await apiPost('createRoom', { nickname, avatar: selectedAvatar });
     roomCode = data.roomCode;
     playerId = data.playerId;
     isHost = true;
@@ -104,7 +114,7 @@ document.getElementById('btn-join').addEventListener('click', async () => {
   if (!code) return showError('home-error', 'Please enter a room code.');
   hideError('home-error');
   try {
-    const data = await apiPost(`rooms/${code}/join`, { nickname });
+    const data = await apiPost(`rooms/${code}/join`, { nickname, avatar: selectedAvatar });
     roomCode = code;
     playerId = data.playerId;
     isHost = false;
@@ -121,7 +131,13 @@ function renderLobby(data) {
   document.getElementById('lobby-room-code').textContent = data.roomCode;
 
   const list = document.getElementById('lobby-player-list');
-  list.innerHTML = data.players.map(p => `<li>${p.nickname}</li>`).join('');
+  list.innerHTML = data.players.map(p => `
+    <li>
+      <div class="player-item">
+        <div class="player-avatar">${p.avatar}</div>
+        <span>${p.nickname}</span>
+      </div>
+    </li>`).join('');
 
   const btnStart = document.getElementById('btn-start');
   const waitingMsg = document.getElementById('lobby-waiting-msg');
@@ -149,9 +165,19 @@ function renderClue(data) {
 
   const wordDisplay = document.getElementById('clue-word-display');
   if (data.isRobot) {
-    wordDisplay.innerHTML = '<div class="robot-alert">You are the Robot!<br><span>You do not know the word. Blend in.</span></div>';
+    wordDisplay.innerHTML = `
+      <div class="robot-alert">
+        <span class="robot-icon">🤖</span>
+        <span class="robot-label">You are the Robot!</span>
+        <span class="robot-hint">You don't know the word. Blend in.</span>
+      </div>`;
   } else {
-    wordDisplay.innerHTML = `<div class="word-reveal">The word is: <strong>${data.currentWord}</strong><br><span class="category">(Category: ${data.currentCategory})</span></div>`;
+    wordDisplay.innerHTML = `
+      <div class="word-reveal">
+        <div class="label">The secret word is</div>
+        <strong>${data.currentWord}</strong>
+        <div class="category">${data.currentCategory}</div>
+      </div>`;
   }
 
   const myPlayer = data.players.find(p => p.playerId === playerId);
@@ -161,9 +187,16 @@ function renderClue(data) {
   document.getElementById('clue-submitted-msg').classList.toggle('hidden', !hasSubmittedClue);
 
   const statusList = document.getElementById('clue-status-list');
-  statusList.innerHTML = data.players.map(p =>
-    `<li>${p.nickname} — ${p.hasSubmittedClue ? '✓ submitted' : 'waiting...'}</li>`
-  ).join('');
+  statusList.innerHTML = data.players.map(p => `
+    <li>
+      <div class="status-item">
+        <div class="player-item">
+          <div class="player-avatar">${p.avatar}</div>
+          <span>${p.nickname}</span>
+        </div>
+        <div class="status-dot ${p.hasSubmittedClue ? 'done' : ''}"></div>
+      </div>
+    </li>`).join('');
 }
 
 document.getElementById('btn-submit-clue').addEventListener('click', async () => {
@@ -187,9 +220,13 @@ function renderReveal(data) {
   document.getElementById('reveal-round').textContent = data.round;
 
   const list = document.getElementById('reveal-clue-list');
-  list.innerHTML = data.players.map(p =>
-    `<li><strong>${p.nickname}:</strong> ${p.clue || '—'}</li>`
-  ).join('');
+  list.innerHTML = data.players.map(p => `
+    <li>
+      <div class="clue-item">
+        <span class="clue-name">${p.nickname}</span>
+        <span class="clue-word">${p.clue || '—'}</span>
+      </div>
+    </li>`).join('');
 
   const btnStartVote = document.getElementById('btn-start-vote');
   const waitingMsg = document.getElementById('reveal-waiting-msg');
@@ -228,7 +265,11 @@ function renderVote(data) {
 
   container.innerHTML = data.players
     .filter(p => p.playerId !== playerId)
-    .map(p => `<button class="vote-btn" data-id="${p.playerId}">${p.nickname}</button>`)
+    .map(p => `
+      <button class="vote-btn" data-id="${p.playerId}">
+        <div class="vote-avatar">${p.avatar}</div>
+        ${p.nickname}
+      </button>`)
     .join('');
 
   container.querySelectorAll('.vote-btn').forEach(btn => {
@@ -250,20 +291,32 @@ function renderResults(data) {
   showScreen('screen-results');
   document.getElementById('results-round').textContent = data.round;
 
-  document.getElementById('results-outcome').textContent =
-    data.robotCaught ? 'The group wins!' : 'The Robot wins!';
+  const banner = document.getElementById('results-outcome-banner');
+  banner.className = `outcome-banner ${data.robotCaught ? 'win' : 'loss'}`;
+  banner.innerHTML = `
+    <span class="outcome-icon">${data.robotCaught ? '🎉' : '🤖'}</span>
+    <div class="outcome-text">${data.robotCaught ? 'The group wins!' : 'The Robot wins!'}</div>`;
 
   const robotPlayer = data.players.find(p => p.playerId === data.robotPlayerId);
-  document.getElementById('results-robot-reveal').textContent =
-    `The Robot was: ${robotPlayer ? robotPlayer.nickname : 'unknown'}`;
+  document.getElementById('results-robot-reveal').innerHTML = `
+    <div class="reveal-label">The Robot was</div>
+    <div class="reveal-value">${robotPlayer ? robotPlayer.nickname : '—'}</div>`;
 
-  document.getElementById('results-word-reveal').textContent =
-    `The word was: ${data.currentWord}`;
+  document.getElementById('results-word-reveal').innerHTML = `
+    <div class="reveal-label">The word was</div>
+    <div class="reveal-value">${data.currentWord || '—'}</div>`;
 
   const voteList = document.getElementById('results-vote-list');
   voteList.innerHTML = data.players.map(p => {
     const votedFor = data.players.find(p2 => p2.playerId === p.vote);
-    return `<li>${p.nickname} voted for ${votedFor ? votedFor.nickname : '—'}</li>`;
+    const isRobot = p.playerId === data.robotPlayerId;
+    return `
+      <li class="${isRobot ? 'robot-player' : ''}">
+        <div class="player-item">
+          <div class="player-avatar">${p.avatar}</div>
+          <span>${p.nickname}${isRobot ? ' 🤖' : ''} voted for <strong>${votedFor ? votedFor.nickname : '—'}</strong></span>
+        </div>
+      </li>`;
   }).join('');
 
   const btnNextRound = document.getElementById('btn-next-round');

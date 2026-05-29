@@ -10,6 +10,7 @@ app.http('joinRoom', {
     const roomCode = request.params.roomCode;
     const body = await request.json();
     const nickname = body.nickname;
+    const avatar = body.avatar || '🦊';
 
     if (!nickname) {
       return { status: 400, body: JSON.stringify({ error: "nickname is required" }) };
@@ -35,6 +36,7 @@ app.http('joinRoom', {
       partitionKey: roomCode,
       rowKey: playerId,
       nickname: nickname,
+      avatar: avatar,
       isRobot: false,
       clue: "",
       vote: "",
