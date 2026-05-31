@@ -34,29 +34,47 @@ app.http('submitClue', {
       return { status: 400, body: JSON.stringify({ error: "Not currently in the clue phase" }) };
     }
 
-    // Save this player's clue
+    const clueOrder = JSON.parse(room.clueOrder || '[]');
+    const currentClueIndex = room.currentClueIndex ?? 0;
+    const currentCluePass = room.currentCluePass ?? 1;
+
+    if (clueOrder[currentClueIndex] !== playerId) {
+      return { status: 403, body: JSON.stringify({ error: "It's not your turn" }) };
+    }
+
+    // Save to clue (pass 1) or clue2 (pass 2)
+    const clueField = currentCluePass === 1 ? 'clue' : 'clue2';
     await playersTable.updateEntity({
       partitionKey: roomCode,
       rowKey: playerId,
-      clue: clue,
+      [clueField]: clue,
     }, "Merge");
 
-    // Check if all players have submitted
-    const playersIter = playersTable.listEntities({
-      queryOptions: { filter: `PartitionKey eq '${roomCode}'` }
-    });
-    const players = [];
-    for await (const player of playersIter) {
-      players.push(player);
-    }
+    // Advance the turn
+    const nextIndex = currentClueIndex + 1;
+    const isLastInPass = nextIndex >= clueOrder.length;
 
-    const allSubmitted = players.every(p => p.rowKey === playerId || p.clue !== "");
-
-    if (allSubmitted) {
+    if (isLastInPass && currentCluePass === 1) {
+      // First pass done — start pass 2
       await roomsTable.updateEntity({
         partitionKey: "rooms",
         rowKey: roomCode,
+        currentClueIndex: 0,
+        currentCluePass: 2,
+      }, "Merge");
+    } else if (isLastInPass && currentCluePass === 2) {
+      // Both passes done — advance to reveal
+      await roomsTable.updateEntity({
+        partitionKey: "rooms",
+        rowKey: roomCode,
+        currentClueIndex: nextIndex,
         status: "reveal",
+      }, "Merge");
+    } else {
+      await roomsTable.updateEntity({
+        partitionKey: "rooms",
+        rowKey: roomCode,
+        currentClueIndex: nextIndex,
       }, "Merge");
     }
 

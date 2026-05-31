@@ -31,16 +31,26 @@ app.http('getRoom', {
 
     const players = [];
     for await (const player of playersIter) {
+      const showClue = ["reveal", "vote", "results"].includes(room.status)
+        || (room.status === "clue" && player.clue !== "");
+      const showClue2 = ["reveal", "vote", "results"].includes(room.status)
+        || (room.status === "clue" && (player.clue2 || "") !== "");
+
       players.push({
         playerId: player.rowKey,
         nickname: player.nickname,
         avatar: player.avatar || '🦊',
         hasSubmittedClue: player.clue !== "",
+        hasSubmittedClue2: (player.clue2 || "") !== "",
         hasVoted: player.vote !== "",
-        clue: ["reveal", "vote", "results"].includes(room.status) ? player.clue : undefined,
+        clue: showClue ? player.clue : undefined,
+        clue2: showClue2 ? (player.clue2 || "") : undefined,
         vote: room.status === "results" ? player.vote : undefined,
       });
     }
+
+    let clueOrder = [];
+    try { clueOrder = JSON.parse(room.clueOrder || '[]'); } catch {}
 
     return {
       status: 200,
@@ -54,6 +64,9 @@ app.http('getRoom', {
         currentCategory: room.status !== "waiting" ? room.currentCategory : null,
         robotPlayerId: room.status === "results" ? room.robotPlayerId : null,
         robotCaught: room.status === "results" ? room.robotCaught : null,
+        clueOrder,
+        currentClueIndex: room.currentClueIndex ?? 0,
+        currentCluePass: room.currentCluePass ?? 1,
         players,
       }),
     };

@@ -44,6 +44,7 @@ app.http('nextRound', {
         rowKey: player.rowKey,
         isRobot: false,
         clue: "",
+        clue2: "",
         vote: "",
       }, "Merge");
     }
@@ -72,6 +73,11 @@ app.http('nextRound', {
 
     const randomWord = words[Math.floor(Math.random() * words.length)];
 
+    // Shuffle players into a new clue order
+    const clueOrder = [...players]
+      .sort(() => Math.random() - 0.5)
+      .map(p => p.rowKey);
+
     // Update room for new round
     await roomsTable.updateEntity({
       partitionKey: "rooms",
@@ -82,6 +88,9 @@ app.http('nextRound', {
       robotPlayerId: robotPlayer.rowKey,
       robotCaught: false,
       round: room.round + 1,
+      clueOrder: JSON.stringify(clueOrder),
+      currentClueIndex: 0,
+      currentCluePass: 1,
     }, "Merge");
 
     return {

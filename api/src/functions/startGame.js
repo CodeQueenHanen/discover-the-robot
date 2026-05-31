@@ -71,6 +71,11 @@ app.http('startGame', {
       isRobot: true,
     }, "Merge");
 
+    // Shuffle players into a random clue order
+    const clueOrder = [...players]
+      .sort(() => Math.random() - 0.5)
+      .map(p => p.rowKey);
+
     // Update room
     await roomsTable.updateEntity({
       partitionKey: "rooms",
@@ -79,6 +84,9 @@ app.http('startGame', {
       currentWord: randomWord,
       currentCategory: randomCategory,
       robotPlayerId: robotPlayer.rowKey,
+      clueOrder: JSON.stringify(clueOrder),
+      currentClueIndex: 0,
+      currentCluePass: 1,
     }, "Merge");
 
     return {
