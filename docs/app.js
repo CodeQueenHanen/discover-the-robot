@@ -10,7 +10,14 @@ let hasSubmittedClue = false;
 let hasVoted = false;
 let pollTimer = null;
 let lastStatus = null;
+let lastCluePass = null;
 let selectedAvatar = '🦊';
+
+function ordinal(n) {
+  const s = ['th', 'st', 'nd', 'rd'];
+  const v = n % 100;
+  return n + (s[(v - 20) % 10] || s[v] || s[0]);
+}
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 function showScreen(id) {
@@ -60,10 +67,16 @@ function stopPolling() {
 async function poll() {
   try {
     const data = await apiGet(`rooms/${roomCode}?playerId=${playerId}`);
-    if (data.status !== lastStatus) {
+    const passChanged = data.status === 'clue' && data.currentCluePass !== lastCluePass;
+    if (data.status !== lastStatus || passChanged) {
       lastStatus = data.status;
+      lastCluePass = data.currentCluePass || 1;
       hasSubmittedClue = false;
       hasVoted = false;
+      if (passChanged) {
+        document.getElementById('clue-input').value = '';
+        hideError('clue-error');
+      }
     }
     render(data);
   } catch (e) {
@@ -107,6 +120,19 @@ document.getElementById('btn-create').addEventListener('click', async () => {
   }
 });
 
+document.getElementById('btn-join-toggle').addEventListener('click', () => {
+  hideError('home-error');
+  document.getElementById('home-actions').classList.add('hidden');
+  document.getElementById('join-panel').classList.remove('hidden');
+  document.getElementById('room-code-input').focus();
+});
+
+document.getElementById('btn-join-back').addEventListener('click', () => {
+  hideError('home-error');
+  document.getElementById('join-panel').classList.add('hidden');
+  document.getElementById('home-actions').classList.remove('hidden');
+});
+
 document.getElementById('btn-join').addEventListener('click', async () => {
   const nickname = document.getElementById('nickname-input').value.trim();
   const code = document.getElementById('room-code-input').value.trim().toUpperCase();
@@ -131,22 +157,38 @@ function renderLobby(data) {
   document.getElementById('lobby-room-code').textContent = data.roomCode;
 
   const list = document.getElementById('lobby-player-list');
-  list.innerHTML = data.players.map(p => `
-    <li>
-      <div class="player-item">
-        <div class="player-avatar">${p.avatar}</div>
-        <span>${p.nickname}</span>
-      </div>
-    </li>`).join('');
+  list.innerHTML = data.players.map(p => {
+    const isPlayerHost = p.playerId === data.hostPlayerId;
+    return `
+      <li>
+        <div class="player-item">
+          <div class="player-avatar">${p.avatar}</div>
+          <span>${p.nickname}</span>
+          ${isPlayerHost ? '<span class="host-badge">Host</span>' : ''}
+        </div>
+      </li>`;
+  }).join('');
 
   const btnStart = document.getElementById('btn-start');
   const waitingMsg = document.getElementById('lobby-waiting-msg');
+  const needPlayersMsg = document.getElementById('lobby-need-players-msg');
+  const enoughPlayers = data.players.length >= 2;
+
   if (isHost) {
     btnStart.classList.remove('hidden');
     waitingMsg.classList.add('hidden');
+    btnStart.disabled = !enoughPlayers;
+    if (!enoughPlayers) {
+      const needed = 2 - data.players.length;
+      needPlayersMsg.textContent = `Need ${needed} more player${needed > 1 ? 's' : ''} to start`;
+      needPlayersMsg.classList.remove('hidden');
+    } else {
+      needPlayersMsg.classList.add('hidden');
+    }
   } else {
     btnStart.classList.add('hidden');
     waitingMsg.classList.remove('hidden');
+    needPlayersMsg.classList.add('hidden');
   }
 }
 
@@ -170,6 +212,7 @@ function renderClue(data) {
         <span class="robot-icon">🤖</span>
         <span class="robot-label">You are the Robot!</span>
         <span class="robot-hint">You don't know the word. Blend in.</span>
+        <div class="robot-category">Category<strong>${data.currentCategory}</strong></div>
       </div>`;
   } else {
     wordDisplay.innerHTML = `
@@ -180,23 +223,65 @@ function renderClue(data) {
       </div>`;
   }
 
+  const clueOrder = data.clueOrder || [];
+  const currentPass = data.currentCluePass || 1;
+  const currentIdx = data.currentClueIndex ?? 0;
+  const currentTurnPlayerId = clueOrder[currentIdx];
+  const isMyTurn = currentTurnPlayerId === playerId;
   const myPlayer = data.players.find(p => p.playerId === playerId);
-  hasSubmittedClue = myPlayer?.hasSubmittedClue || false;
 
-  document.getElementById('clue-form').classList.toggle('hidden', hasSubmittedClue);
-  document.getElementById('clue-submitted-msg').classList.toggle('hidden', !hasSubmittedClue);
+  const hasSubmittedCurrentPass = currentPass === 1
+    ? (myPlayer?.hasSubmittedClue || false)
+    : (myPlayer?.hasSubmittedClue2 || false);
+  hasSubmittedClue = hasSubmittedCurrentPass;
+
+  const clueForm = document.getElementById('clue-form');
+  const statusMsg = document.getElementById('clue-submitted-msg');
+
+  if (hasSubmittedCurrentPass) {
+    clueForm.classList.add('hidden');
+    statusMsg.classList.remove('hidden');
+    statusMsg.innerHTML = `Clue submitted! Waiting for others<span class="loading-dots"><span></span><span></span><span></span></span>`;
+  } else if (isMyTurn) {
+    clueForm.classList.remove('hidden');
+    statusMsg.classList.add('hidden');
+  } else {
+    const currentPlayer = data.players.find(p => p.playerId === currentTurnPlayerId);
+    clueForm.classList.add('hidden');
+    statusMsg.classList.remove('hidden');
+    statusMsg.innerHTML = `Waiting for ${currentPlayer?.nickname || 'a player'}<span class="loading-dots"><span></span><span></span><span></span></span>`;
+  }
 
   const statusList = document.getElementById('clue-status-list');
-  statusList.innerHTML = data.players.map(p => `
-    <li>
-      <div class="status-item">
-        <div class="player-item">
-          <div class="player-avatar">${p.avatar}</div>
-          <span>${p.nickname}</span>
-        </div>
-        <div class="status-dot ${p.hasSubmittedClue ? 'done' : ''}"></div>
-      </div>
-    </li>`).join('');
+  let html = '';
+
+  [1, 2].forEach(pass => {
+    html += `<li class="pass-divider">Pass ${pass}</li>`;
+    clueOrder.forEach((pid, i) => {
+      const player = data.players.find(p => p.playerId === pid);
+      if (!player) return;
+      const globalIndex = (pass - 1) * clueOrder.length + i + 1;
+      const isDone = pass < currentPass || (pass === currentPass && i < currentIdx);
+      const isCurrent = pass === currentPass && i === currentIdx;
+      const isYou = pid === playerId;
+      const submittedClue = pass === 1 ? player.clue : player.clue2;
+      let label;
+      if (isDone) label = `<span class="clue-badge">clue submitted:</span>${submittedClue || ''}`;
+      else if (isCurrent) label = isYou ? 'Your turn!' : 'Thinking...';
+      else label = 'Up next...';
+      html += `
+        <li class="turn-item ${isDone ? 'done' : ''} ${isCurrent ? 'current' : ''}">
+          <div class="player-item">
+            <span class="turn-ordinal">${ordinal(globalIndex)}</span>
+            <div class="player-avatar">${player.avatar}</div>
+            <span>${player.nickname}${isYou ? ' (you)' : ''}</span>
+          </div>
+          <span class="turn-clue">${label}</span>
+        </li>`;
+    });
+  });
+
+  statusList.innerHTML = html;
 }
 
 document.getElementById('btn-submit-clue').addEventListener('click', async () => {
@@ -224,7 +309,10 @@ function renderReveal(data) {
     <li>
       <div class="clue-item">
         <span class="clue-name">${p.nickname}</span>
-        <span class="clue-word">${p.clue || '—'}</span>
+        <div class="clue-words">
+          <span class="clue-word">${p.clue || '—'}</span>
+          ${p.clue2 ? `<span class="clue-separator">·</span><span class="clue-word">${p.clue2}</span>` : ''}
+        </div>
       </div>
     </li>`).join('');
 
