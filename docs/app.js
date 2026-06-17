@@ -11,7 +11,7 @@ let hasVoted = false;
 let pollTimer = null;
 let lastStatus = null;
 let lastCluePass = null;
-let selectedAvatar = '🦊';
+let selectedAvatar = null;
 
 function ordinal(n) {
   const s = ['th', 'st', 'nd', 'rd'];
@@ -104,10 +104,28 @@ document.getElementById('avatar-picker').addEventListener('click', (e) => {
 });
 
 // ── Home ───────────────────────────────────────────────────────────────────
-document.getElementById('btn-create').addEventListener('click', async () => {
-  const nickname = document.getElementById('nickname-input').value.trim();
-  if (!nickname) return showError('home-error', 'Please enter a nickname.');
+function validateHomeForm() {
+  const nicknameInput = document.getElementById('nickname-input');
+  const nickname = nicknameInput.value.trim();
+  if (!nickname) {
+    nicknameInput.classList.add('input-error');
+    nicknameInput.focus();
+    setTimeout(() => nicknameInput.classList.remove('input-error'), 600);
+    showError('home-error', 'Please enter a nickname first.');
+    return null;
+  }
+  if (!selectedAvatar) {
+    showError('home-error', 'Please pick a character first.');
+    return null;
+  }
   hideError('home-error');
+  nicknameInput.classList.remove('input-error');
+  return nickname;
+}
+
+document.getElementById('btn-create').addEventListener('click', async () => {
+  const nickname = validateHomeForm();
+  if (!nickname) return;
   try {
     const data = await apiPost('createRoom', { nickname, avatar: selectedAvatar });
     roomCode = data.roomCode;
@@ -134,11 +152,10 @@ document.getElementById('btn-join-back').addEventListener('click', () => {
 });
 
 document.getElementById('btn-join').addEventListener('click', async () => {
-  const nickname = document.getElementById('nickname-input').value.trim();
+  const nickname = validateHomeForm();
+  if (!nickname) return;
   const code = document.getElementById('room-code-input').value.trim().toUpperCase();
-  if (!nickname) return showError('home-error', 'Please enter a nickname.');
   if (!code) return showError('home-error', 'Please enter a room code.');
-  hideError('home-error');
   try {
     const data = await apiPost(`rooms/${code}/join`, { nickname, avatar: selectedAvatar });
     roomCode = code;
@@ -425,3 +442,22 @@ document.getElementById('btn-next-round').addEventListener('click', async () => 
     alert(e.message);
   }
 });
+
+// ── Leave Room ─────────────────────────────────────────────────────────────
+document.getElementById('btn-leave-room').addEventListener('click', () => {
+  stopPolling();
+  roomCode = null;
+  playerId = null;
+  isHost = false;
+  hasSubmittedClue = false;
+  hasVoted = false;
+  lastStatus = null;
+  lastCluePass = null;
+  showScreen('screen-home');
+  document.getElementById('home-actions').classList.add('hidden');
+  document.getElementById('join-panel').classList.remove('hidden');
+  document.getElementById('room-code-input').focus();
+});
+
+// ── Auto-focus nickname on load ────────────────────────────────────────────
+document.getElementById('nickname-input').focus();

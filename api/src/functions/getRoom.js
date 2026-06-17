@@ -60,7 +60,7 @@ app.http('getRoom', {
         round: room.round,
         hostPlayerId: room.hostPlayerId,
         isRobot: isRobot,
-        currentWord: isRobot ? null : (room.status !== "waiting" ? room.currentWord : null),
+        currentWord: (room.status !== "waiting" && (!isRobot || room.status !== "clue")) ? room.currentWord : null,
         currentCategory: room.status !== "waiting" ? room.currentCategory : null,
         robotPlayerId: room.status === "results" ? room.robotPlayerId : null,
         robotCaught: room.status === "results" ? room.robotCaught : null,
