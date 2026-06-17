@@ -29,7 +29,7 @@ app.http('nextRound', {
       return { status: 400, body: JSON.stringify({ error: "Cannot start next round yet" }) };
     }
 
-    // Fetch all players and reset their clues, votes, and robot status
+    // Fetch all players and reset their clues, votes, and robot status.
     const playersIter = playersTable.listEntities({
       queryOptions: { filter: `PartitionKey eq '${roomCode}'` }
     });
